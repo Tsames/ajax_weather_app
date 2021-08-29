@@ -1,8 +1,9 @@
-//Saving our API key as a global variable
+//Global Variables
 const API_KEY = '2235a334db1d5212c49deb967be3f9c2';
 const BASE_URL = `https://api.openweathermap.org/data/2.5/weather?`
+const results = {city: null, temperature: 0, feelsLike: 0, weather: null, unit: null}
 
-//Grabbing </p>s from DOM as jQuery Objects
+//DOM Elements
 const $cityName = $('#city-name');
 const $temperature = $('#temperature');
 const $feelsLike = $('#feels-like');
@@ -13,52 +14,59 @@ const $farenheitButton = $('#convertF');
 const $celsiusButton = $('#convertC');
 
 //Callback Functions
-const convertToFarenheit = (kelvin, target) => {
-  let temperature = Number(target.text());
-  if (kelvin) {
-    temperature = ((temperature - 273.15) * 1.8) + 32;
-  } else {
-    temperature = (temperature * 1.8) - 32;
+const saveResults = (data) => {
+  results.city = data.name;
+  results.temperature = Math.round((data.main.temp - 273.15) * 1.8 + 32);
+  results.feelsLike = Math.round((data.main.feels_like - 273.15) * 1.8 + 32);
+  results.weather = data.weather[0].main;
+  results.unit = 'F';
+}
+
+const postResults = () => {
+  $cityName.text(results.city);
+  $temperature.text(`${results.temperature}°${results.unit}`);
+  $feelsLike.text(`${results.feelsLike}°${results.unit}`);
+  $weather.text(results.weather);
+}
+
+const convertToFarenheit = () => {
+  if (results.unit === 'C') {
+    results.unit = 'F'
+    results.temperature = Math.round((results.temperature * 1.8) + 32);
+    results.feelsLike = Math.round((results.feelsLike * 1.8) + 32);
   }
-  target.text(`${Math.round(temperature)} F`);
 }
 
-const convertToCelsius = (kelvin) => {
-  let temperature = Number($temperature.text());
-  if (kelvin) {
-    temperature = temperature - 273.15;
-  } else {
-    temperature = (temperature - 32) / 1.8
+const convertToCelsius = () => {
+  if (results.unit === 'F') {
+    results.unit = 'C'
+    results.temperature = Math.round((results.temperature - 32) / 1.8);
+    results.feelsLike = Math.round((results.feelsLike - 32) / 1.8);
   }
-  $temperature.text(`${Math.round(temperature)} C`);
 }
 
-const postResults = (data) => {
-  $cityName.text(data.name);
-  $temperature.text(data.main.temp);
-  convertToFarenheit(true, $temperature);
-  $feelsLike.text(data.main.feels_like);
-  convertToFarenheit(true, $feelsLike)
-  $weather.text(data.weather[0].main);
-}
-
-//jQuery Event Listener to Send User Input to API
+//Event Listeners Search Button to API
 $searchButton.on('click', function (event) {
-  console.log($search.val())
   const promise = $.ajax({
     url: `${BASE_URL}q=${$search.val()}&appid=${API_KEY}`
   }).then(
     (data) => {
-      postResults(data);
+      console.log(data)
+      saveResults(data);
+      postResults();
     }, (error) => {
       console.log('bad request', error);
     }
   );
 })
 
-//jQuery Event Listener for Conversion Buttons
-$farenheitButton.on('click', convertToFarenheit);
-$celsiusButton.on('click', convertToCelsius);
+//Event Listeners Conversion Buttons
+$farenheitButton.on('click', function (event) {
+  convertToFarenheit();
+  postResults();
+});
 
-
-
+$celsiusButton.on('click', function (event) {
+  convertToCelsius();
+  postResults();
+});
